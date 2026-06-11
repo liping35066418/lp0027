@@ -1,14 +1,58 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Play, RotateCcw, Home, Star, ArrowLeft, Trophy, X } from 'lucide-react';
+import {
+  Play,
+  RotateCcw,
+  Home,
+  Star,
+  ArrowLeft,
+  Trophy,
+  X,
+  Zap,
+  Sparkles,
+  Award,
+  Flame,
+} from 'lucide-react';
 import GameCanvas from '@/components/GameCanvas';
 import BubbleHUD from '@/components/BubbleHUD';
 import ItemBar from '@/components/ItemBar';
 import { useGameStore } from '@/store/gameStore';
 import { api } from '@/services/api';
-import { generateId, generateMockGameId, calculateStars, angleToRad, gridToHex } from '@/utils/gameUtils';
-import { BUBBLE_COLORS, BUBBLE_RADIUS } from '../../shared/types';
-import type { Bubble, Item, BubbleColor } from '../../shared/types';
+import {
+  generateId,
+  generateMockGameId,
+  calculateStars,
+  angleToRad,
+  gridToHex,
+} from '@/utils/gameUtils';
+import {
+  BUBBLE_COLORS,
+  BUBBLE_RADIUS,
+  type SaveScoreResponse,
+  type LevelRecord,
+  type Bubble,
+  type Item,
+  type BubbleColor,
+} from '../../shared/types';
+
+function mergeBubbles(
+  base: (Bubble | null)[][],
+  extraEliminated: Bubble[],
+  extraFalling: Bubble[]
+): (Bubble | null)[][] {
+  const out = base.map((row) => [...row]);
+  for (const b of extraEliminated) {
+    if (out[b.row]?.[b.col]) {
+      out[b.row][b.col] = null;
+    }
+  }
+  for (const b of extraFalling) {
+    if (out[b.row]?.[b.col]) {
+      out[b.row][b.col] = null;
+    }
+  }
+  return out;
+}
 
 export default function GamePage() {
   const { levelId = '1' } = useParams();
@@ -16,6 +60,7 @@ export default function GamePage() {
   const [loading, setLoading] = useState(true);
   const [showPause, setShowPause] = useState(false);
   const [showResult, setShowResult] = useState(false);
+  const [saveScoreResult, setSaveScoreResult] = useState<SaveScoreResponse | null>(null);
 
   const gameId = useGameStore((s) => s.gameId);
   const gameState = useGameStore((s) => s.gameState);
@@ -24,6 +69,10 @@ export default function GamePage() {
   const currentBubble = useGameStore((s) => s.currentBubble);
   const nextBubble = useGameStore((s) => s.nextBubble);
   const levelConfig = useGameStore((s) => s.levelConfig);
+  const maxCombo = useGameStore((s) => s.maxCombo);
+  const autoItemTriggeredCount = useGameStore((s) => s.autoItemTriggeredCount);
+  const highScores = useGameStore((s) => s.highScores);
+
   const initGame = useGameStore((s) => s.initGame);
   const updateGameState = useGameStore((s) => s.updateGameState);
   const updateBubbles = useGameStore((s) => s.updateBubbles);
@@ -34,38 +83,45 @@ export default function GamePage() {
   const updateShotsLeft = useGameStore((s) => s.updateShotsLeft);
   const updateTimeLeft = useGameStore((s) => s.updateTimeLeft);
   const updateAvailableItems = useGameStore((s) => s.updateAvailableItems);
+  const updateEnergy = useGameStore((s) => s.updateEnergy);
+  const updateMaxCombo = useGameStore((s) => s.updateMaxCombo);
+  const updateAutoItemTriggeredCount = useGameStore((s) => s.updateAutoItemTriggeredCount);
+  const clearLastAutoItem = useGameStore((s) => s.clearLastAutoItem);
   const setFlyingBubble = useGameStore((s) => s.setFlyingBubble);
   const setEliminatedBubbles = useGameStore((s) => s.setEliminatedBubbles);
   const setFallingBubbles = useGameStore((s) => s.setFallingBubbles);
-  const useItem = useGameStore((s) => s.useItem);
+  const consumeItem = useGameStore((s) => s.useItem);
   const pause = useGameStore((s) => s.pause);
   const resume = useGameStore((s) => s.resume);
   const restart = useGameStore((s) => s.restart);
 
-  const generateMockBubbles = useCallback((rows: number, cols: number, colors: BubbleColor[]): (Bubble | null)[][] => {
-    const bubbles: (Bubble | null)[][] = [];
-    for (let r = 0; r < rows; r++) {
-      const row: (Bubble | null)[] = [];
-      for (let c = 0; c < cols; c++) {
-        if (r < Math.floor(rows * 0.6) && Math.random() > 0.2) {
-          const pos = gridToHex(r, c, BUBBLE_RADIUS, 0, 20);
-          row.push({
-            id: generateId(),
-            row: r,
-            col: c,
-            x: pos.x,
-            y: pos.y,
-            color: colors[Math.floor(Math.random() * colors.length)],
-            type: 'normal',
-          });
-        } else {
-          row.push(null);
+  const generateMockBubbles = useCallback(
+    (rows: number, cols: number, colors: BubbleColor[]): (Bubble | null)[][] => {
+      const bubbles: (Bubble | null)[][] = [];
+      for (let r = 0; r < rows; r++) {
+        const row: (Bubble | null)[] = [];
+        for (let c = 0; c < cols; c++) {
+          if (r < Math.floor(rows * 0.6) && Math.random() > 0.2) {
+            const pos = gridToHex(r, c, BUBBLE_RADIUS, 0, 20);
+            row.push({
+              id: generateId(),
+              row: r,
+              col: c,
+              x: pos.x,
+              y: pos.y,
+              color: colors[Math.floor(Math.random() * colors.length)],
+              type: 'normal',
+            });
+          } else {
+            row.push(null);
+          }
         }
+        bubbles.push(row);
       }
-      bubbles.push(row);
-    }
-    return bubbles;
-  }, []);
+      return bubbles;
+    },
+    [],
+  );
 
   const createBubble = useCallback((colors: BubbleColor[]): Bubble => {
     const color = colors[Math.floor(Math.random() * colors.length)];
@@ -101,6 +157,9 @@ export default function GamePage() {
           comboMultiplier: response.comboMultiplier,
           comboCount: response.comboCount,
           availableItems: response.availableItems,
+          energy: response.energy,
+          maxCombo: response.maxCombo,
+          autoItemTriggeredCount: response.autoItemTriggeredCount,
         });
       } catch {
         const levelIdNum = parseInt(levelId, 10);
@@ -138,6 +197,9 @@ export default function GamePage() {
           comboMultiplier: 1,
           comboCount: 0,
           availableItems: mockConfig.items || [],
+          energy: 0,
+          maxCombo: 0,
+          autoItemTriggeredCount: 0,
         });
       } finally {
         setLoading(false);
@@ -149,8 +211,26 @@ export default function GamePage() {
   useEffect(() => {
     if (gameState === 'WIN' || gameState === 'LOSE') {
       setShowResult(true);
+      (async () => {
+        try {
+          const stars = calculateStars(score, targetScore);
+          const res = await api.saveScore(
+            parseInt(levelId, 10),
+            score,
+            stars,
+            gameId,
+            maxCombo,
+            autoItemTriggeredCount,
+          );
+          setSaveScoreResult(res);
+        } catch {
+          setSaveScoreResult(null);
+        }
+      })();
+    } else {
+      setSaveScoreResult(null);
     }
-  }, [gameState]);
+  }, [gameState, score, targetScore, levelId, gameId, maxCombo, autoItemTriggeredCount]);
 
   const handleShoot = useCallback(
     async (angle: number, power: number) => {
@@ -172,11 +252,28 @@ export default function GamePage() {
         try {
           const response = await api.shootBubble(gameId, angle, power);
           setFlyingBubble(null);
-          setEliminatedBubbles(response.eliminatedBubbles);
-          if (response.fallingBubbles) {
-            setFallingBubbles(response.fallingBubbles);
+
+          let finalEliminated = [...response.eliminatedBubbles];
+          let finalFalling = response.fallingBubbles ? [...response.fallingBubbles] : [];
+          let finalBubbles = response.bubbles;
+
+          if (response.autoItemTriggered) {
+            finalEliminated = [...finalEliminated, ...response.autoItemTriggered.eliminatedBubbles];
+            if (response.autoItemTriggered.fallingBubbles) {
+              finalFalling = [...finalFalling, ...response.autoItemTriggered.fallingBubbles];
+              finalBubbles = mergeBubbles(
+                finalBubbles,
+                response.autoItemTriggered.eliminatedBubbles,
+                response.autoItemTriggered.fallingBubbles,
+              );
+            }
           }
-          updateBubbles(response.bubbles);
+
+          setEliminatedBubbles(finalEliminated);
+          if (finalFalling.length > 0) {
+            setFallingBubbles(finalFalling);
+          }
+          updateBubbles(finalBubbles);
           updateCurrentBubble(response.currentBubble);
           updateNextBubble(response.nextBubble);
           updateScore(response.totalScore);
@@ -185,12 +282,19 @@ export default function GamePage() {
           if (response.timeLeft !== undefined) {
             updateTimeLeft(response.timeLeft);
           }
+          updateEnergy(response.energy, response.energyGained, response.autoItemTriggered ?? null);
+          updateMaxCombo(response.maxCombo);
+          updateAutoItemTriggeredCount(response.autoItemTriggeredCount);
           updateGameState(response.gameState);
+
+          if (response.autoItemTriggered) {
+            setTimeout(() => clearLastAutoItem(), 2200);
+          }
 
           setTimeout(() => {
             setEliminatedBubbles([]);
             setFallingBubbles([]);
-          }, 600);
+          }, 900);
         } catch {
           setFlyingBubble(null);
           const colors = levelConfig.availableColors;
@@ -200,7 +304,28 @@ export default function GamePage() {
         }
       }, 500);
     },
-    [currentBubble, nextBubble, levelConfig, gameId, setFlyingBubble, setEliminatedBubbles, setFallingBubbles, updateBubbles, updateCurrentBubble, updateNextBubble, updateScore, updateCombo, updateShotsLeft, updateTimeLeft, updateGameState, createBubble]
+    [
+      currentBubble,
+      nextBubble,
+      levelConfig,
+      gameId,
+      setFlyingBubble,
+      setEliminatedBubbles,
+      setFallingBubbles,
+      updateBubbles,
+      updateCurrentBubble,
+      updateNextBubble,
+      updateScore,
+      updateCombo,
+      updateShotsLeft,
+      updateTimeLeft,
+      updateGameState,
+      updateEnergy,
+      updateMaxCombo,
+      updateAutoItemTriggeredCount,
+      clearLastAutoItem,
+      createBubble,
+    ],
   );
 
   const handlePause = useCallback(async () => {
@@ -224,7 +349,11 @@ export default function GamePage() {
         shotsLeft: response.shotsLeft,
         timeLeft: response.timeLeft,
         comboMultiplier: response.comboMultiplier,
+        comboCount: response.comboCount,
         availableItems: response.availableItems,
+        energy: response.energy,
+        maxCombo: response.maxCombo,
+        autoItemTriggeredCount: response.autoItemTriggeredCount,
       });
     } catch {
       updateGameState('PLAYING');
@@ -235,6 +364,7 @@ export default function GamePage() {
   const handleRestart = useCallback(async () => {
     setShowPause(false);
     setShowResult(false);
+    setSaveScoreResult(null);
     restart();
     try {
       const response = await api.restartGame(gameId);
@@ -253,6 +383,9 @@ export default function GamePage() {
         comboMultiplier: response.comboMultiplier,
         comboCount: 0,
         availableItems: response.availableItems,
+        energy: response.energy,
+        maxCombo: response.maxCombo,
+        autoItemTriggeredCount: response.autoItemTriggeredCount,
       });
     } catch {
       const levelIdNum = parseInt(levelId, 10);
@@ -287,6 +420,9 @@ export default function GamePage() {
         comboMultiplier: 1,
         comboCount: 0,
         availableItems: [],
+        energy: 0,
+        maxCombo: 0,
+        autoItemTriggeredCount: 0,
       });
     }
   }, [gameId, levelId, restart, initGame, generateMockBubbles, createBubble]);
@@ -295,9 +431,12 @@ export default function GamePage() {
     async (item: Item) => {
       try {
         const response = await api.useItem(gameId, item.type);
-        useItem(item);
+        consumeItem(item);
         updateScore(response.totalScore);
         updateAvailableItems(response.remainingItems);
+        updateEnergy(response.energy, 0, null);
+        updateMaxCombo(response.maxCombo);
+        updateAutoItemTriggeredCount(response.autoItemTriggeredCount);
         if (response.eliminatedBubbles.length > 0) {
           setEliminatedBubbles(response.eliminatedBubbles);
           if (response.fallingBubbles) {
@@ -310,13 +449,55 @@ export default function GamePage() {
         }
         updateGameState(response.gameState);
       } catch {
-        useItem(item);
+        consumeItem(item);
       }
     },
-    [gameId, useItem, updateScore, updateAvailableItems, setEliminatedBubbles, setFallingBubbles, updateGameState]
+    [
+      gameId,
+      consumeItem,
+      updateScore,
+      updateAvailableItems,
+      setEliminatedBubbles,
+      setFallingBubbles,
+      updateGameState,
+      updateEnergy,
+      updateMaxCombo,
+      updateAutoItemTriggeredCount,
+    ],
   );
 
   const earnedStars = calculateStars(score, targetScore);
+
+  const levelIdNum = parseInt(levelId, 10);
+  const historicalHigh = highScores.find((h) => h.levelId === levelIdNum) || null;
+
+  const prevRecord: LevelRecord | null = saveScoreResult?.previousRecord ??
+    (historicalHigh
+      ? {
+          levelId: historicalHigh.levelId,
+          score: historicalHigh.score,
+          stars: historicalHigh.stars,
+          maxCombo: historicalHigh.maxCombo,
+          autoItemTriggers: historicalHigh.autoItemTriggers,
+          achievedAt: historicalHigh.achievedAt,
+        }
+      : null);
+
+  const isNewScoreRecord = saveScoreResult
+    ? saveScoreResult.newRecords.score
+    : prevRecord
+      ? score > prevRecord.score
+      : score > 0;
+  const isNewComboRecord = saveScoreResult
+    ? saveScoreResult.newRecords.maxCombo
+    : prevRecord
+      ? maxCombo > prevRecord.maxCombo
+      : maxCombo > 0;
+  const isNewItemRecord = saveScoreResult
+    ? saveScoreResult.newRecords.autoItemTriggers
+    : prevRecord
+      ? autoItemTriggeredCount > prevRecord.autoItemTriggers
+      : autoItemTriggeredCount > 0;
 
   if (loading) {
     return (
@@ -382,7 +563,7 @@ export default function GamePage() {
 
       {showResult && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-6 z-50">
-          <div className="glass-card p-8 rounded-3xl max-w-sm w-full text-center">
+          <div className="glass-card p-8 rounded-3xl max-w-sm w-full text-center relative">
             {gameState === 'WIN' ? (
               <>
                 <div className="text-6xl mb-4">🎉</div>
@@ -412,17 +593,87 @@ export default function GamePage() {
               </>
             )}
 
-            <div className="glass-card p-4 rounded-xl mb-6">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <Trophy className="w-5 h-5 text-yellow-400" />
-                <span className="text-white/60">最终得分</span>
+            <div className="space-y-3 mb-6">
+              <div className="glass-card p-4 rounded-xl">
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <Trophy className="w-4 h-4 text-yellow-400" />
+                  <span className="text-white/60 text-sm">最终得分</span>
+                  {isNewScoreRecord && (
+                    <span className="inline-flex items-center gap-1 text-[10px] bg-yellow-500/20 text-yellow-300 px-2 py-0.5 rounded-full border border-yellow-400/40 font-semibold">
+                      <Award className="w-3 h-3" /> 新纪录
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-baseline justify-center gap-2">
+                  <div className="text-3xl font-bold text-white tabular-nums">
+                    {score.toLocaleString()}
+                  </div>
+                  {prevRecord && (
+                    <div className="text-xs text-white/40 line-through">
+                      {prevRecord.score.toLocaleString()}
+                    </div>
+                  )}
+                </div>
+                <div className="text-xs text-white/40 mt-0.5">
+                  目标: {targetScore.toLocaleString()}
+                </div>
               </div>
-              <div className="text-4xl font-bold text-white tabular-nums">
-                {score.toLocaleString()}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="glass-card p-3 rounded-xl">
+                  <div className="flex items-center justify-center gap-1 mb-1">
+                    <Flame className="w-3.5 h-3.5 text-orange-400" />
+                    <span className="text-white/60 text-[11px]">最高连击</span>
+                  </div>
+                  {isNewComboRecord && (
+                    <div className="inline-flex items-center gap-1 text-[9px] bg-orange-500/20 text-orange-300 px-1.5 py-0.5 rounded-full border border-orange-400/40 font-semibold mb-1">
+                      <Sparkles className="w-2.5 h-2.5" /> 新纪录
+                    </div>
+                  )}
+                  <div className="flex items-baseline justify-center gap-1">
+                    <div className="text-xl font-bold text-orange-300 tabular-nums">
+                      {maxCombo}
+                    </div>
+                    {prevRecord && prevRecord.maxCombo > 0 && (
+                      <div className="text-[10px] text-white/40 line-through">
+                        {prevRecord.maxCombo}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="glass-card p-3 rounded-xl">
+                  <div className="flex items-center justify-center gap-1 mb-1">
+                    <Zap className="w-3.5 h-3.5 text-fuchsia-400" />
+                    <span className="text-white/60 text-[11px]">自动道具</span>
+                  </div>
+                  {isNewItemRecord && autoItemTriggeredCount > 0 && (
+                    <div className="inline-flex items-center gap-1 text-[9px] bg-fuchsia-500/20 text-fuchsia-300 px-1.5 py-0.5 rounded-full border border-fuchsia-400/40 font-semibold mb-1">
+                      <Sparkles className="w-2.5 h-2.5" /> 新纪录
+                    </div>
+                  )}
+                  <div className="flex items-baseline justify-center gap-1">
+                    <div className="text-xl font-bold text-fuchsia-300 tabular-nums">
+                      {autoItemTriggeredCount}
+                    </div>
+                    {prevRecord && prevRecord.autoItemTriggers > 0 && (
+                      <div className="text-[10px] text-white/40 line-through">
+                        {prevRecord.autoItemTriggers}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div className="text-sm text-white/40 mt-1">
-                目标: {targetScore.toLocaleString()}
-              </div>
+
+              {saveScoreResult?.isNewHighScore && (
+                <div className="glass-card p-3 rounded-xl bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-400/30">
+                  <div className="flex items-center justify-center gap-2 text-yellow-300 font-bold">
+                    <Sparkles className="w-4 h-4" />
+                    恭喜刷新关卡最佳战绩!
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex flex-col gap-3">

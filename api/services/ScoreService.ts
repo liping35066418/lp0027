@@ -1,4 +1,10 @@
-import type { HighScore, SaveScoreRequest, SaveScoreResponse, GetHighScoresResponse } from '../../shared/types.js';
+import type {
+  HighScore,
+  SaveScoreRequest,
+  SaveScoreResponse,
+  GetHighScoresResponse,
+  LevelRecord,
+} from '../../shared/types.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -15,12 +21,24 @@ function ensureDataDir(): void {
   }
 }
 
+function migrateHighScore(score: any): HighScore {
+  return {
+    levelId: score.levelId,
+    score: score.score,
+    stars: score.stars,
+    achievedAt: score.achievedAt,
+    maxCombo: score.maxCombo ?? 0,
+    autoItemTriggers: score.autoItemTriggers ?? 0,
+  };
+}
+
 function loadScores(): HighScore[] {
   ensureDataDir();
   try {
     if (fs.existsSync(SCORES_FILE)) {
       const data = fs.readFileSync(SCORES_FILE, 'utf-8');
-      return JSON.parse(data) as HighScore[];
+      const raw = JSON.parse(data) as any[];
+      return raw.map(migrateHighScore);
     }
   } catch {
     console.warn('Failed to load scores, starting fresh');
@@ -82,45 +100,70 @@ class ScoreService {
     return 1 + (comboCount - 1) * 0.5;
   }
 
-  saveScore(request: SaveScoreRequest): SaveScoreResponse {
+  saveScore(request: SaveScoreRequest & { maxCombo?: number; autoItemTriggers?: number }): SaveScoreResponse {
     const { levelId, score, stars } = request;
+    const maxCombo = request.maxCombo ?? 0;
+    const autoItemTriggers = request.autoItemTriggers ?? 0;
 
     const existingIndex = this.highScores.findIndex(s => s.levelId === levelId);
-    let isNewHighScore = false;
+    const previous: LevelRecord | null = existingIndex >= 0
+      ? {
+          levelId: this.highScores[existingIndex].levelId,
+          score: this.highScores[existingIndex].score,
+          stars: this.highScores[existingIndex].stars,
+          maxCombo: this.highScores[existingIndex].maxCombo,
+          autoItemTriggers: this.highScores[existingIndex].autoItemTriggers,
+          achievedAt: this.highScores[existingIndex].achievedAt,
+        }
+      : null;
+
+    const newRecords = {
+      score: !previous || score > previous.score,
+      maxCombo: !previous || maxCombo > previous.maxCombo,
+      autoItemTriggers: !previous || autoItemTriggers > previous.autoItemTriggers,
+    };
+    const isNewHighScore = newRecords.score || newRecords.maxCombo || newRecords.autoItemTriggers;
 
     if (existingIndex >= 0) {
       const existing = this.highScores[existingIndex];
-      if (score > existing.score) {
-        this.highScores[existingIndex] = {
-          levelId,
-          score,
-          stars: Math.max(existing.stars, stars),
-          achievedAt: Date.now(),
-        };
-        isNewHighScore = true;
-      } else if (stars > existing.stars) {
-        this.highScores[existingIndex] = {
-          ...existing,
-          stars,
-          achievedAt: Date.now(),
-        };
-      }
+      this.highScores[existingIndex] = {
+        levelId,
+        score: Math.max(existing.score, score),
+        stars: Math.max(existing.stars, stars),
+        achievedAt: isNewHighScore ? Date.now() : existing.achievedAt,
+        maxCombo: Math.max(existing.maxCombo, maxCombo),
+        autoItemTriggers: Math.max(existing.autoItemTriggers, autoItemTriggers),
+      };
     } else {
       this.highScores.push({
         levelId,
         score,
         stars,
         achievedAt: Date.now(),
+        maxCombo,
+        autoItemTriggers,
       });
-      isNewHighScore = true;
     }
 
     saveScores(this.highScores);
+
+    const current = this.highScores.find(s => s.levelId === levelId)!;
+    const currentRecord: LevelRecord = {
+      levelId: current.levelId,
+      score: current.score,
+      stars: current.stars,
+      maxCombo: current.maxCombo,
+      autoItemTriggers: current.autoItemTriggers,
+      achievedAt: current.achievedAt,
+    };
 
     return {
       success: true,
       isNewHighScore,
       highScores: [...this.highScores],
+      newRecords,
+      previousRecord: previous,
+      currentRecord,
     };
   }
 

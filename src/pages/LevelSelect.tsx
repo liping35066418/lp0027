@@ -100,8 +100,8 @@ export default function LevelSelect() {
       } catch {
         setLevels(MOCK_LEVELS);
         const mockScores: HighScore[] = [
-          { levelId: 1, score: 1500, stars: 2, achievedAt: Date.now() },
-          { levelId: 2, score: 800, stars: 1, achievedAt: Date.now() },
+          { levelId: 1, score: 1500, stars: 2, achievedAt: Date.now(), maxCombo: 0, autoItemTriggers: 0 },
+          { levelId: 2, score: 800, stars: 1, achievedAt: Date.now(), maxCombo: 0, autoItemTriggers: 0 },
         ];
         updateScores(mockScores, [1, 2]);
       } finally {

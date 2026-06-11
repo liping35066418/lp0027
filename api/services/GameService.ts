@@ -13,13 +13,19 @@ import type {
   ResumeGameResponse,
   PauseGameResponse,
   GetGameStateResponse,
+  AutoItemTriggeredResult,
 } from '../../shared/types.js'
 import levelService from './LevelService.js'
 import bubbleService from './BubbleService.js'
 import trajectoryService from './TrajectoryService.js'
 import itemService from './ItemService.js'
 import scoreService from './ScoreService.js'
-import { COMBO_TIMEOUT } from '../../shared/types.js'
+import {
+  COMBO_TIMEOUT,
+  MAX_ENERGY,
+  calculateEnergyGained,
+  pickAutoItemType,
+} from '../../shared/types.js'
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
@@ -40,6 +46,15 @@ function getSavePath(gameId: string): string {
   return path.join(SAVES_DIR, `${gameId}.json`)
 }
 
+function migrateGameData(data: any): GameData {
+  return {
+    ...data,
+    energy: data.energy ?? 0,
+    maxCombo: data.maxCombo ?? 0,
+    autoItemTriggeredCount: data.autoItemTriggeredCount ?? 0,
+  }
+}
+
 function saveGameData(gameData: GameData): void {
   try {
     ensureSaveDir()
@@ -54,7 +69,7 @@ function loadGameData(gameId: string): GameData | null {
     const savePath = getSavePath(gameId)
     if (fs.existsSync(savePath)) {
       const data = fs.readFileSync(savePath, 'utf-8')
-      return JSON.parse(data) as GameData
+      return migrateGameData(JSON.parse(data))
     }
   } catch (err) {
     console.warn('Failed to load game data:', err)
@@ -92,6 +107,8 @@ interface ShootResult {
   currentBubble: Bubble
   nextBubble: Bubble
   bubbles: (Bubble | null)[][]
+  energyGained: number
+  autoItemTriggered?: AutoItemTriggeredResult
 }
 
 class GameService {
@@ -148,6 +165,9 @@ class GameService {
       availableItems: items,
       lastUpdated: Date.now(),
       version: 1,
+      energy: 0,
+      maxCombo: 0,
+      autoItemTriggeredCount: 0,
     }
 
     this.games.set(gameId, gameData)
@@ -168,6 +188,9 @@ class GameService {
       levelConfig,
       comboMultiplier: 1,
       comboCount: 0,
+      energy: 0,
+      maxCombo: 0,
+      autoItemTriggeredCount: 0,
     }
   }
 
@@ -224,6 +247,19 @@ class GameService {
     gameData.currentBubble = result.currentBubble
     gameData.nextBubble = result.nextBubble
     gameData.bubbles = result.bubbles
+    gameData.energy = Math.min(MAX_ENERGY, gameData.energy + result.energyGained)
+    if (result.comboCount > gameData.maxCombo) {
+      gameData.maxCombo = result.comboCount
+    }
+
+    let autoItemTriggered = result.autoItemTriggered
+
+    if (!autoItemTriggered && gameData.energy >= MAX_ENERGY) {
+      autoItemTriggered = this.triggerAutoItem(gameData)
+      gameData.autoItemTriggeredCount += 1
+      gameData.energy = 0
+    }
+
     gameData.lastUpdated = Date.now()
     gameData.version += 1
 
@@ -240,11 +276,21 @@ class GameService {
         score: gameData.score,
         stars,
         gameId,
+        maxCombo: gameData.maxCombo,
+        autoItemTriggers: gameData.autoItemTriggeredCount,
       })
       deleteGameData(gameId)
     } else if (lose) {
       gameData.gameState = 'LOSE'
       message = '游戏结束！'
+      scoreService.saveScore({
+        levelId: gameData.levelId,
+        score: gameData.score,
+        stars: 0,
+        gameId,
+        maxCombo: gameData.maxCombo,
+        autoItemTriggers: gameData.autoItemTriggeredCount,
+      })
       deleteGameData(gameId)
     } else {
       gameData.gameState = 'PLAYING'
@@ -269,7 +315,144 @@ class GameService {
       currentBubble: gameData.currentBubble,
       nextBubble: gameData.nextBubble,
       bubbles: gameData.bubbles,
+      energy: gameData.energy,
+      energyGained: result.energyGained,
+      maxCombo: gameData.maxCombo,
+      autoItemTriggeredCount: gameData.autoItemTriggeredCount,
+      autoItemTriggered,
     }
+  }
+
+  private triggerAutoItem(gameData: GameData): AutoItemTriggeredResult {
+    const itemType: ItemType = pickAutoItemType()
+    const availableColors = gameData.levelConfig.availableColors
+    const targetColor = this.findMostCommonColor(gameData.bubbles, availableColors)
+
+    let eliminatedBubbles: Bubble[] = []
+    let fallingBubbles: Bubble[] = []
+    let scoreGained = 0
+
+    switch (itemType) {
+      case 'bomb': {
+        const target = this.findLowestBubble(gameData.bubbles)
+        if (target) {
+          const inRange = bubbleService.getBombBlastRadius(
+            gameData.bubbles,
+            target.row,
+            target.col,
+            1,
+          )
+          for (const b of inRange) {
+            if (b.type !== 'obstacle' && !b.isEliminated) {
+              b.isEliminated = true
+              if (gameData.bubbles[b.row]?.[b.col]) {
+                gameData.bubbles[b.row][b.col] = null
+              }
+              eliminatedBubbles.push(b)
+            }
+          }
+        }
+        fallingBubbles = bubbleService.findFloatingBubbles(gameData.bubbles)
+        for (const fb of fallingBubbles) {
+          fb.isFalling = true
+          if (gameData.bubbles[fb.row]?.[fb.col]) {
+            gameData.bubbles[fb.row][fb.col] = null
+          }
+          eliminatedBubbles.push(fb)
+        }
+        scoreGained = eliminatedBubbles.length * 15
+        break
+      }
+      case 'range': {
+        for (let row = 0; row < gameData.bubbles.length; row++) {
+          for (let col = 0; col < (gameData.bubbles[row]?.length || 0); col++) {
+            const bubble = gameData.bubbles[row]?.[col]
+            if (!bubble || bubble.isEliminated) continue
+            if (bubble.type === 'obstacle' || bubble.type === 'locked') continue
+            if (bubble.color === targetColor || bubble.type === 'colorful') {
+              bubble.isEliminated = true
+              if (gameData.bubbles[row]?.[col]) {
+                gameData.bubbles[row][col] = null
+              }
+              eliminatedBubbles.push(bubble)
+            }
+          }
+        }
+        fallingBubbles = bubbleService.findFloatingBubbles(gameData.bubbles)
+        for (const fb of fallingBubbles) {
+          fb.isFalling = true
+          if (gameData.bubbles[fb.row]?.[fb.col]) {
+            gameData.bubbles[fb.row][fb.col] = null
+          }
+          eliminatedBubbles.push(fb)
+        }
+        scoreGained = eliminatedBubbles.length * 10
+        break
+      }
+      case 'color_change': {
+        const target = this.findLowestBubble(gameData.bubbles)
+        if (target && targetColor && target.type !== 'obstacle' && target.type !== 'locked') {
+          target.color = targetColor
+          if (target.type !== 'bomb') {
+            target.type = 'normal'
+          }
+          const elimination = bubbleService.eliminateBubbles(
+            gameData.bubbles,
+            target.row,
+            target.col,
+          )
+          eliminatedBubbles = elimination.eliminated
+          fallingBubbles = elimination.falling
+          scoreGained = eliminatedBubbles.length * 10 + fallingBubbles.length * 20
+        }
+        break
+      }
+    }
+
+    gameData.score += scoreGained
+
+    return {
+      itemType,
+      eliminatedBubbles,
+      fallingBubbles,
+      scoreGained,
+    }
+  }
+
+  private findLowestBubble(bubbles: (Bubble | null)[][]): Bubble | null {
+    for (let row = bubbles.length - 1; row >= 0; row--) {
+      for (let col = 0; col < (bubbles[row]?.length || 0); col++) {
+        const b = bubbles[row]?.[col]
+        if (b && !b.isEliminated && b.type !== 'obstacle') {
+          return b
+        }
+      }
+    }
+    return null
+  }
+
+  private findMostCommonColor(
+    bubbles: (Bubble | null)[][],
+    availableColors: BubbleColor[],
+  ): BubbleColor {
+    const counts: Record<string, number> = {}
+    for (const row of bubbles) {
+      for (const b of row) {
+        if (b && b.type !== 'obstacle' && !b.isEliminated) {
+          counts[b.color] = (counts[b.color] || 0) + 1
+        }
+      }
+    }
+    let best: BubbleColor = availableColors[0] || 'red'
+    let bestCount = -1
+    for (const color of availableColors) {
+      const c = counts[color] || 0
+      if (c > bestCount) {
+        bestCount = c
+        best = color
+      }
+    }
+    return best
   }
 
   private executeShoot(
@@ -338,7 +521,7 @@ class GameService {
     let comboMultiplier = 1
     let comboCount = 0
 
-    if (chainReaction.length > 0 || fallingBubbles.length > 0) {
+    if (chainReaction.length > 0 || fallingBubbles.length > 0 || eliminatedBubbles.length > 0) {
       if (now - gameData.lastUpdated < COMBO_TIMEOUT) {
         comboCount = gameData.comboCount + 1
         comboMultiplier = Math.min(1 + comboCount * 0.5, 5)
@@ -348,6 +531,9 @@ class GameService {
       }
       scoreGained = Math.floor(scoreGained * comboMultiplier)
     }
+
+    const totalEliminated = eliminatedBubbles.length
+    const energyGained = calculateEnergyGained(totalEliminated, comboCount)
 
     const availableColors = gameData.levelConfig.availableColors
     const currentBubble = gameData.nextBubble
@@ -371,6 +557,7 @@ class GameService {
       currentBubble,
       nextBubble,
       bubbles: newBubbles,
+      energyGained,
     }
   }
 
@@ -424,10 +611,20 @@ class GameService {
         score: gameData.score,
         stars,
         gameId,
+        maxCombo: gameData.maxCombo,
+        autoItemTriggers: gameData.autoItemTriggeredCount,
       })
       deleteGameData(gameId)
     } else if (lose) {
       gameData.gameState = 'LOSE'
+      scoreService.saveScore({
+        levelId: gameData.levelId,
+        score: gameData.score,
+        stars: 0,
+        gameId,
+        maxCombo: gameData.maxCombo,
+        autoItemTriggers: gameData.autoItemTriggeredCount,
+      })
       deleteGameData(gameId)
     } else {
       saveGameData(gameData)
@@ -443,6 +640,9 @@ class GameService {
       gameState: gameData.gameState,
       fallingBubbles: result.fallingBubbles,
       comboMultiplier: gameData.comboMultiplier,
+      energy: gameData.energy,
+      maxCombo: gameData.maxCombo,
+      autoItemTriggeredCount: gameData.autoItemTriggeredCount,
     }
   }
 
@@ -493,7 +693,11 @@ class GameService {
       shotsLeft: gameData.shotsLeft,
       timeLeft: gameData.timeLeft,
       comboMultiplier: gameData.comboMultiplier,
+      comboCount: gameData.comboCount,
       availableItems: gameData.availableItems,
+      energy: gameData.energy,
+      maxCombo: gameData.maxCombo,
+      autoItemTriggeredCount: gameData.autoItemTriggeredCount,
     }
   }
 
@@ -531,6 +735,9 @@ class GameService {
       availableItems: gameData.availableItems,
       lastUpdated: gameData.lastUpdated,
       levelConfig: gameData.levelConfig,
+      energy: gameData.energy,
+      maxCombo: gameData.maxCombo,
+      autoItemTriggeredCount: gameData.autoItemTriggeredCount,
     }
   }
 
@@ -593,6 +800,14 @@ class GameService {
 
     if (gameData.timeLeft <= 0 && this.checkLoseCondition(gameData)) {
       gameData.gameState = 'LOSE'
+      scoreService.saveScore({
+        levelId: gameData.levelId,
+        score: gameData.score,
+        stars: 0,
+        gameId,
+        maxCombo: gameData.maxCombo,
+        autoItemTriggers: gameData.autoItemTriggeredCount,
+      })
       deleteGameData(gameId)
     } else {
       saveGameData(gameData)

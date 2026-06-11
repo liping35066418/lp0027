@@ -1,0 +1,612 @@
+{
+  "gameId": "game_1781169335937_9",
+  "levelId": 1,
+  "levelConfig": {
+    "id": 1,
+    "name": "初识泡泡",
+    "type": "normal",
+    "rows": 5,
+    "cols": 8,
+    "bubbleLayout": [
+      [
+        "red",
+        "blue",
+        "yellow",
+        "green",
+        "red",
+        "blue",
+        "yellow",
+        "green"
+      ],
+      [
+        "blue",
+        "yellow",
+        "green",
+        "red",
+        "blue",
+        "yellow",
+        "green",
+        "red"
+      ],
+      [
+        "yellow",
+        "green",
+        "red",
+        "blue",
+        "yellow",
+        "green",
+        "red",
+        "blue"
+      ],
+      [
+        "green",
+        "red",
+        "blue",
+        "yellow",
+        "green",
+        "red",
+        "blue",
+        "yellow"
+      ],
+      [
+        "red",
+        "blue",
+        "yellow",
+        "green",
+        "red",
+        "blue",
+        "yellow",
+        "green"
+      ]
+    ],
+    "maxShots": 30,
+    "targetScore": 500,
+    "specialBubbles": {},
+    "availableColors": [
+      "red",
+      "blue",
+      "yellow",
+      "green"
+    ],
+    "items": [
+      {
+        "id": "bomb-1",
+        "type": "bomb",
+        "name": "炸弹泡泡",
+        "count": 2,
+        "effect": {
+          "range": 1
+        }
+      }
+    ]
+  },
+  "gameState": "READY",
+  "bubbles": [
+    [
+      {
+        "id": "bubble_1781169335937_321",
+        "row": 0,
+        "col": 0,
+        "x": 24,
+        "y": 24,
+        "color": "red",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      },
+      {
+        "id": "bubble_1781169335937_322",
+        "row": 0,
+        "col": 1,
+        "x": 72,
+        "y": 24,
+        "color": "blue",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      },
+      {
+        "id": "bubble_1781169335937_323",
+        "row": 0,
+        "col": 2,
+        "x": 120,
+        "y": 24,
+        "color": "yellow",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      },
+      {
+        "id": "bubble_1781169335937_324",
+        "row": 0,
+        "col": 3,
+        "x": 168,
+        "y": 24,
+        "color": "green",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      },
+      {
+        "id": "bubble_1781169335937_325",
+        "row": 0,
+        "col": 4,
+        "x": 216,
+        "y": 24,
+        "color": "red",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      },
+      {
+        "id": "bubble_1781169335937_326",
+        "row": 0,
+        "col": 5,
+        "x": 264,
+        "y": 24,
+        "color": "blue",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      },
+      {
+        "id": "bubble_1781169335937_327",
+        "row": 0,
+        "col": 6,
+        "x": 312,
+        "y": 24,
+        "color": "yellow",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      },
+      {
+        "id": "bubble_1781169335937_328",
+        "row": 0,
+        "col": 7,
+        "x": 360,
+        "y": 24,
+        "color": "green",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      }
+    ],
+    [
+      {
+        "id": "bubble_1781169335937_329",
+        "row": 1,
+        "col": 0,
+        "x": 48,
+        "y": 65.56921938165306,
+        "color": "blue",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      },
+      {
+        "id": "bubble_1781169335937_330",
+        "row": 1,
+        "col": 1,
+        "x": 96,
+        "y": 65.56921938165306,
+        "color": "yellow",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      },
+      {
+        "id": "bubble_1781169335937_331",
+        "row": 1,
+        "col": 2,
+        "x": 144,
+        "y": 65.56921938165306,
+        "color": "green",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      },
+      {
+        "id": "bubble_1781169335937_332",
+        "row": 1,
+        "col": 3,
+        "x": 192,
+        "y": 65.56921938165306,
+        "color": "red",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      },
+      {
+        "id": "bubble_1781169335937_333",
+        "row": 1,
+        "col": 4,
+        "x": 240,
+        "y": 65.56921938165306,
+        "color": "blue",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      },
+      {
+        "id": "bubble_1781169335937_334",
+        "row": 1,
+        "col": 5,
+        "x": 288,
+        "y": 65.56921938165306,
+        "color": "yellow",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      },
+      {
+        "id": "bubble_1781169335937_335",
+        "row": 1,
+        "col": 6,
+        "x": 336,
+        "y": 65.56921938165306,
+        "color": "green",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      },
+      {
+        "id": "bubble_1781169335937_336",
+        "row": 1,
+        "col": 7,
+        "x": 384,
+        "y": 65.56921938165306,
+        "color": "red",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      }
+    ],
+    [
+      {
+        "id": "bubble_1781169335937_337",
+        "row": 2,
+        "col": 0,
+        "x": 24,
+        "y": 107.13843876330611,
+        "color": "yellow",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      },
+      {
+        "id": "bubble_1781169335937_338",
+        "row": 2,
+        "col": 1,
+        "x": 72,
+        "y": 107.13843876330611,
+        "color": "green",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      },
+      {
+        "id": "bubble_1781169335937_339",
+        "row": 2,
+        "col": 2,
+        "x": 120,
+        "y": 107.13843876330611,
+        "color": "red",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      },
+      {
+        "id": "bubble_1781169335937_340",
+        "row": 2,
+        "col": 3,
+        "x": 168,
+        "y": 107.13843876330611,
+        "color": "blue",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      },
+      {
+        "id": "bubble_1781169335937_341",
+        "row": 2,
+        "col": 4,
+        "x": 216,
+        "y": 107.13843876330611,
+        "color": "yellow",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      },
+      {
+        "id": "bubble_1781169335937_342",
+        "row": 2,
+        "col": 5,
+        "x": 264,
+        "y": 107.13843876330611,
+        "color": "green",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      },
+      {
+        "id": "bubble_1781169335937_343",
+        "row": 2,
+        "col": 6,
+        "x": 312,
+        "y": 107.13843876330611,
+        "color": "red",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      },
+      {
+        "id": "bubble_1781169335937_344",
+        "row": 2,
+        "col": 7,
+        "x": 360,
+        "y": 107.13843876330611,
+        "color": "blue",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      }
+    ],
+    [
+      {
+        "id": "bubble_1781169335937_345",
+        "row": 3,
+        "col": 0,
+        "x": 48,
+        "y": 148.70765814495917,
+        "color": "green",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      },
+      {
+        "id": "bubble_1781169335937_346",
+        "row": 3,
+        "col": 1,
+        "x": 96,
+        "y": 148.70765814495917,
+        "color": "red",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      },
+      {
+        "id": "bubble_1781169335937_347",
+        "row": 3,
+        "col": 2,
+        "x": 144,
+        "y": 148.70765814495917,
+        "color": "blue",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      },
+      {
+        "id": "bubble_1781169335937_348",
+        "row": 3,
+        "col": 3,
+        "x": 192,
+        "y": 148.70765814495917,
+        "color": "yellow",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      },
+      {
+        "id": "bubble_1781169335937_349",
+        "row": 3,
+        "col": 4,
+        "x": 240,
+        "y": 148.70765814495917,
+        "color": "green",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      },
+      {
+        "id": "bubble_1781169335938_350",
+        "row": 3,
+        "col": 5,
+        "x": 288,
+        "y": 148.70765814495917,
+        "color": "red",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      },
+      {
+        "id": "bubble_1781169335938_351",
+        "row": 3,
+        "col": 6,
+        "x": 336,
+        "y": 148.70765814495917,
+        "color": "blue",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      },
+      {
+        "id": "bubble_1781169335938_352",
+        "row": 3,
+        "col": 7,
+        "x": 384,
+        "y": 148.70765814495917,
+        "color": "yellow",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      }
+    ],
+    [
+      {
+        "id": "bubble_1781169335938_353",
+        "row": 4,
+        "col": 0,
+        "x": 24,
+        "y": 190.27687752661222,
+        "color": "red",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      },
+      {
+        "id": "bubble_1781169335938_354",
+        "row": 4,
+        "col": 1,
+        "x": 72,
+        "y": 190.27687752661222,
+        "color": "blue",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      },
+      {
+        "id": "bubble_1781169335938_355",
+        "row": 4,
+        "col": 2,
+        "x": 120,
+        "y": 190.27687752661222,
+        "color": "yellow",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      },
+      {
+        "id": "bubble_1781169335938_356",
+        "row": 4,
+        "col": 3,
+        "x": 168,
+        "y": 190.27687752661222,
+        "color": "green",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      },
+      {
+        "id": "bubble_1781169335938_357",
+        "row": 4,
+        "col": 4,
+        "x": 216,
+        "y": 190.27687752661222,
+        "color": "red",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      },
+      {
+        "id": "bubble_1781169335938_358",
+        "row": 4,
+        "col": 5,
+        "x": 264,
+        "y": 190.27687752661222,
+        "color": "blue",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      },
+      {
+        "id": "bubble_1781169335938_359",
+        "row": 4,
+        "col": 6,
+        "x": 312,
+        "y": 190.27687752661222,
+        "color": "yellow",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      },
+      {
+        "id": "bubble_1781169335938_360",
+        "row": 4,
+        "col": 7,
+        "x": 360,
+        "y": 190.27687752661222,
+        "color": "green",
+        "type": "normal",
+        "isEliminated": false,
+        "isFalling": false,
+        "lockHits": 0
+      }
+    ]
+  ],
+  "currentBubble": {
+    "id": "current_1781169335938_ozg315ze368",
+    "row": 5,
+    "col": 0,
+    "x": 48,
+    "y": 231.84609690826528,
+    "color": "red",
+    "type": "normal"
+  },
+  "nextBubble": {
+    "id": "current_1781169335938_7716jnucxxm",
+    "row": 5,
+    "col": 0,
+    "x": 48,
+    "y": 231.84609690826528,
+    "color": "red",
+    "type": "normal"
+  },
+  "score": 0,
+  "shotsLeft": 30,
+  "targetScore": 500,
+  "comboMultiplier": 1,
+  "comboCount": 0,
+  "availableItems": [
+    {
+      "id": "bomb-1",
+      "type": "bomb",
+      "name": "炸弹泡泡",
+      "count": 2,
+      "effect": {
+        "range": 1
+      }
+    }
+  ],
+  "lastUpdated": 1781169335938,
+  "version": 1
+}

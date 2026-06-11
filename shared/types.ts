@@ -67,6 +67,8 @@ export interface HighScore {
   score: number;
   stars: number;
   achievedAt: number;
+  maxCombo: number;
+  autoItemTriggers: number;
 }
 
 export interface GameData {
@@ -86,6 +88,16 @@ export interface GameData {
   availableItems: Item[];
   lastUpdated: number;
   version: number;
+  energy: number;
+  maxCombo: number;
+  autoItemTriggeredCount: number;
+}
+
+export interface AutoItemTriggeredResult {
+  itemType: ItemType;
+  eliminatedBubbles: Bubble[];
+  fallingBubbles?: Bubble[];
+  scoreGained: number;
 }
 
 export interface InitGameRequest {
@@ -108,6 +120,9 @@ export interface InitGameResponse {
   levelConfig: LevelConfig;
   comboMultiplier: number;
   comboCount: number;
+  energy: number;
+  maxCombo: number;
+  autoItemTriggeredCount: number;
 }
 
 export interface CalculateTrajectoryRequest {
@@ -149,6 +164,11 @@ export interface ShootBubbleResponse {
   currentBubble: Bubble;
   nextBubble: Bubble;
   bubbles: (Bubble | null)[][];
+  energy: number;
+  energyGained: number;
+  maxCombo: number;
+  autoItemTriggeredCount: number;
+  autoItemTriggered?: AutoItemTriggeredResult;
 }
 
 export interface PauseGameRequest {
@@ -175,7 +195,11 @@ export interface ResumeGameResponse {
   shotsLeft: number;
   timeLeft?: number;
   comboMultiplier: number;
+  comboCount: number;
   availableItems: Item[];
+  energy: number;
+  maxCombo: number;
+  autoItemTriggeredCount: number;
 }
 
 export interface RestartGameRequest {
@@ -198,6 +222,9 @@ export interface GetGameStateResponse {
   availableItems: Item[];
   lastUpdated: number;
   levelConfig: LevelConfig;
+  energy: number;
+  maxCombo: number;
+  autoItemTriggeredCount: number;
 }
 
 export interface UseItemRequest {
@@ -217,6 +244,9 @@ export interface UseItemResponse {
   gameState: GameState;
   fallingBubbles?: Bubble[];
   comboMultiplier: number;
+  energy: number;
+  maxCombo: number;
+  autoItemTriggeredCount: number;
 }
 
 export interface GetLevelsResponse {
@@ -235,12 +265,30 @@ export interface SaveScoreRequest {
   score: number;
   stars: number;
   gameId: string;
+  maxCombo?: number;
+  autoItemTriggers?: number;
+}
+
+export interface LevelRecord {
+  levelId: number;
+  score: number;
+  stars: number;
+  maxCombo: number;
+  autoItemTriggers: number;
+  achievedAt: number;
 }
 
 export interface SaveScoreResponse {
   success: boolean;
   isNewHighScore: boolean;
   highScores: HighScore[];
+  newRecords: {
+    score: boolean;
+    maxCombo: boolean;
+    autoItemTriggers: boolean;
+  };
+  previousRecord: LevelRecord | null;
+  currentRecord: LevelRecord;
 }
 
 export const BUBBLE_COLORS: BubbleColor[] = ['red', 'blue', 'yellow', 'green', 'purple', 'orange'];
@@ -268,3 +316,28 @@ export const BUBBLE_DIAMETER = BUBBLE_RADIUS * 2;
 export const BUBBLE_VERTICAL_SPACING = BUBBLE_RADIUS * Math.sqrt(3);
 export const MIN_ELIMINATION_COUNT = 3;
 export const COMBO_TIMEOUT = 3000;
+
+export const MAX_ENERGY = 100;
+export const ENERGY_PER_BUBBLE = 5;
+export const ENERGY_COMBO_MULTIPLIER = 2;
+export const AUTO_ITEM_TYPES: ItemType[] = ['bomb', 'range', 'color_change'];
+export const AUTO_ITEM_NAMES: Record<ItemType, string> = {
+  bomb: '炸弹',
+  range: '范围消除',
+  color_change: '变色',
+};
+
+export function calculateEnergyGained(eliminatedCount: number, comboCount: number): number {
+  if (eliminatedCount <= 0) return 0;
+  const base = eliminatedCount * ENERGY_PER_BUBBLE;
+  const comboBonus = comboCount > 1 ? Math.floor(base * (ENERGY_COMBO_MULTIPLIER - 1) * Math.min(comboCount - 1, 5) / 5) : 0;
+  return base + comboBonus;
+}
+
+export function pickAutoItemType(seed?: number): ItemType {
+  const types = AUTO_ITEM_TYPES;
+  if (seed !== undefined) {
+    return types[seed % types.length];
+  }
+  return types[Math.floor(Math.random() * types.length)];
+}

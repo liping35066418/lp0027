@@ -150,9 +150,11 @@ export const api = {
     levelId: number,
     score: number,
     stars: number,
-    gameId: string
+    gameId: string,
+    maxCombo?: number,
+    autoItemTriggers?: number,
   ): Promise<SaveScoreResponse> {
-    const body: SaveScoreRequest = { levelId, score, stars, gameId };
+    const body: SaveScoreRequest = { levelId, score, stars, gameId, maxCombo, autoItemTriggers };
     return request<SaveScoreResponse>('/scores/save', {
       method: 'POST',
       body: JSON.stringify(body),

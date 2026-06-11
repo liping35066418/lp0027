@@ -7,6 +7,7 @@ import type {
   Item,
   LevelConfig,
   HighScore,
+  AutoItemTriggeredResult,
 } from '../../shared/types';
 
 interface FlyingBubble {
@@ -58,6 +59,11 @@ interface GameStore {
   fallingBubbles: Bubble[];
   selectedItem: Item | null;
 
+  energy: number;
+  maxCombo: number;
+  autoItemTriggeredCount: number;
+  lastAutoItem: AutoItemTriggeredResult | null;
+
   initGame: (data: {
     gameId: string;
     levelId: number;
@@ -73,6 +79,9 @@ interface GameStore {
     comboMultiplier: number;
     comboCount: number;
     availableItems: Item[];
+    energy?: number;
+    maxCombo?: number;
+    autoItemTriggeredCount?: number;
   }) => void;
   setAim: (angle: number, trajectory: Point[]) => void;
   setAiming: (aiming: boolean) => void;
@@ -92,7 +101,11 @@ interface GameStore {
     shotsLeft: number;
     timeLeft?: number;
     comboMultiplier: number;
+    comboCount?: number;
     availableItems: Item[];
+    energy?: number;
+    maxCombo?: number;
+    autoItemTriggeredCount?: number;
   }) => void;
   restart: () => void;
   useItem: (item: Item, targetBubbleId?: string, targetColor?: Bubble['color']) => void;
@@ -110,6 +123,10 @@ interface GameStore {
   updateTimeLeft: (time: number) => void;
   updateAvailableItems: (items: Item[]) => void;
   decrementTime: () => void;
+  updateEnergy: (energy: number, gained?: number, autoTriggered?: AutoItemTriggeredResult | null) => void;
+  updateMaxCombo: (maxCombo: number) => void;
+  updateAutoItemTriggeredCount: (count: number) => void;
+  clearLastAutoItem: () => void;
 }
 
 export const useGameStore = create<GameStore>()(
@@ -140,6 +157,10 @@ export const useGameStore = create<GameStore>()(
       eliminatedBubbles: [],
       fallingBubbles: [],
       selectedItem: null,
+      energy: 0,
+      maxCombo: 0,
+      autoItemTriggeredCount: 0,
+      lastAutoItem: null,
 
       initGame: (data) => set({
         gameId: data.gameId,
@@ -164,6 +185,10 @@ export const useGameStore = create<GameStore>()(
         eliminatedBubbles: [],
         fallingBubbles: [],
         selectedItem: null,
+        energy: data.energy ?? 0,
+        maxCombo: data.maxCombo ?? 0,
+        autoItemTriggeredCount: data.autoItemTriggeredCount ?? 0,
+        lastAutoItem: null,
       }),
 
       setAim: (angle, trajectory) => set({ aimAngle: angle, trajectory }),
@@ -217,7 +242,11 @@ export const useGameStore = create<GameStore>()(
         shotsLeft: data.shotsLeft,
         timeLeft: data.timeLeft || 0,
         comboMultiplier: data.comboMultiplier,
+        comboCount: data.comboCount ?? 0,
         availableItems: data.availableItems,
+        energy: data.energy ?? 0,
+        maxCombo: data.maxCombo ?? 0,
+        autoItemTriggeredCount: data.autoItemTriggeredCount ?? 0,
       }),
 
       restart: () => set({
@@ -229,6 +258,10 @@ export const useGameStore = create<GameStore>()(
         flyingBubble: null,
         eliminatedBubbles: [],
         fallingBubbles: [],
+        energy: 0,
+        maxCombo: 0,
+        autoItemTriggeredCount: 0,
+        lastAutoItem: null,
       }),
 
       useItem: (item, _targetBubbleId, _targetColor) => set((state) => ({
@@ -270,6 +303,17 @@ export const useGameStore = create<GameStore>()(
       decrementTime: () => set((state) => ({
         timeLeft: Math.max(0, state.timeLeft - 1),
       })),
+
+      updateEnergy: (energy, _gained, autoTriggered) => set((state) => ({
+        energy,
+        lastAutoItem: autoTriggered === undefined ? state.lastAutoItem : (autoTriggered ?? null),
+      })),
+
+      updateMaxCombo: (maxCombo) => set({ maxCombo }),
+
+      updateAutoItemTriggeredCount: (count) => set({ autoItemTriggeredCount: count }),
+
+      clearLastAutoItem: () => set({ lastAutoItem: null }),
     }),
     {
       name: 'bubble-shooter-storage',
