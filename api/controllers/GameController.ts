@@ -38,7 +38,7 @@ function validateLevelId(levelId: unknown): levelId is number {
 }
 
 function validateAngle(angle: unknown): angle is number {
-  return typeof angle === 'number' && angle >= -80 && angle <= 80
+  return typeof angle === 'number' && angle >= 10 && angle <= 170
 }
 
 function validatePower(power: unknown): power is number {

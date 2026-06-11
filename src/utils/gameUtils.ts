@@ -57,6 +57,16 @@ export function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 }
 
+let mockGameIdCounter = 0;
+export function generateMockGameId(): string {
+  mockGameIdCounter++;
+  return `game_mock_${Date.now()}_${mockGameIdCounter}`;
+}
+
+export function isValidGameId(gameId: unknown): gameId is string {
+  return typeof gameId === 'string' && gameId.length > 0 && gameId.startsWith('game_');
+}
+
 export function clampAngle(angle: number): number {
   return Math.max(10, Math.min(170, angle));
 }

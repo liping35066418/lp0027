@@ -6,7 +6,7 @@ import BubbleHUD from '@/components/BubbleHUD';
 import ItemBar from '@/components/ItemBar';
 import { useGameStore } from '@/store/gameStore';
 import { api } from '@/services/api';
-import { generateId, calculateStars, angleToRad, gridToHex } from '@/utils/gameUtils';
+import { generateId, generateMockGameId, calculateStars, angleToRad, gridToHex } from '@/utils/gameUtils';
 import { BUBBLE_COLORS, BUBBLE_RADIUS } from '../../shared/types';
 import type { Bubble, Item, BubbleColor } from '../../shared/types';
 
@@ -124,7 +124,7 @@ export default function GamePage() {
           ] : undefined,
         };
         initGame({
-          gameId: generateId(),
+          gameId: generateMockGameId(),
           levelId: levelIdNum,
           levelConfig: mockConfig,
           gameState: 'PLAYING',
@@ -273,7 +273,7 @@ export default function GamePage() {
         availableColors,
       };
       initGame({
-        gameId: generateId(),
+        gameId: generateMockGameId(),
         levelId: levelIdNum,
         levelConfig: mockConfig,
         gameState: 'PLAYING',

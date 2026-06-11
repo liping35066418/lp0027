@@ -44,8 +44,8 @@ class TrajectoryService {
     const startY = this.config.shooterY
 
     const radians = (angle * Math.PI) / 180
-    const dx = Math.sin(radians) * power * this.config.stepSize
-    const dy = -Math.cos(radians) * power * this.config.stepSize
+    const dx = Math.cos(radians) * power * this.config.stepSize
+    const dy = -Math.sin(radians) * power * this.config.stepSize
 
     let currentX = startX
     let currentY = startY
