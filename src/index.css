@@ -1,0 +1,140 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  line-height: 1.5;
+  font-weight: 400;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #0F0C29 0%, #302B63 50%, #24243E 100%);
+  background-attachment: fixed;
+  color: white;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/5 backdrop-blur-xl border border-white/10 shadow-lg;
+  }
+
+  .glass-button {
+    background: linear-gradient(135deg, rgba(196, 77, 255, 0.4) 0%, rgba(78, 205, 196, 0.4) 100%);
+    @apply backdrop-blur-xl border border-white/20 shadow-lg shadow-purple-500/20;
+  }
+
+  .glass-button:hover {
+    background: linear-gradient(135deg, rgba(196, 77, 255, 0.6) 0%, rgba(78, 205, 196, 0.6) 100%);
+    box-shadow: 0 0 30px rgba(196, 77, 255, 0.4), 0 0 30px rgba(78, 205, 196, 0.3);
+  }
+
+  .glass-button-secondary {
+    @apply bg-white/5 backdrop-blur-xl border border-white/10 shadow-lg hover:bg-white/10;
+  }
+
+  .glass-button-secondary:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+}
+
+@layer utilities {
+  .animate-gradient-shift {
+    animation: gradientShift 3s ease infinite;
+  }
+
+  .animate-bounce-subtle {
+    animation: bounceSubtle 0.6s ease-in-out infinite;
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+}
+
+@keyframes gradientShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes bounceSubtle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+@keyframes floatUp {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(-120vh) scale(0.5);
+    opacity: 0;
+  }
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.floating-bubble {
+  pointer-events: none;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
